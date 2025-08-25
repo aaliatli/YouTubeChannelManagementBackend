@@ -49,6 +49,9 @@ builder.Services.AddDbContext<ChannelDbContext>(opt =>
     var conn = builder.Configuration.GetConnectionString("DefaultConnection");
     opt.UseSqlServer(conn, sql => sql.EnableRetryOnFailure(3));
 });
+builder.Services.AddDbContext<FileDbContext>(opt =>
+    opt.UseSqlServer(builder.Configuration.GetConnectionString("FileDb")));
+
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(ReadFileQueryHandler).Assembly));
 
