@@ -5,6 +5,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddControllers()
     .AddFluentValidation(); 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(5200);  
+});
 
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
