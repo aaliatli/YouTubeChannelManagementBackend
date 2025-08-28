@@ -18,11 +18,13 @@ public class UserController : ControllerBase
         await _mediator.Send(command);
         return Ok("Kullanıcı kaydedildi.");
     }
+    
     [HttpPost("login")]
     public async Task<IActionResult> LoginUser(LoginUserCommand command)
     {
-        await _mediator.Send(command);
-        return Ok("Giriş yapıldı");
+        var token = await _mediator.Send(command);
+        if(string.IsNullOrEmpty(token)){ return Unauthorized("Kullanıcı ya da şifre hatalı!"); }
+        return Ok(new { token });
     }
     [HttpGet("users")]
     public async Task<IActionResult> GetAllUsers()
@@ -30,7 +32,7 @@ public class UserController : ControllerBase
         var result = await _mediator.Send(new GetAllUsersQuery());
         return Ok(result);
     }
-    [HttpGet("user-by-id")]
+    [HttpGet("{id}")]
     public async Task<IActionResult> GetUserById(Guid id)
     {
         return Ok(await _mediator.Send(new GetUserByIdQuery { UserId = id }));

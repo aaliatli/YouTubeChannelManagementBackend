@@ -1,3 +1,5 @@
+using System.Net.Http.Json;
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,10 +9,12 @@ public class ChannelController : ControllerBase
 {
     private readonly IChannelRepository _repository;
     private readonly IMediator _mediator;
-    public ChannelController(IChannelRepository repository, IMediator mediator)
+    private readonly IHttpClientFactory _httpClient;
+    public ChannelController(IChannelRepository repository, IMediator mediator, IHttpClientFactory httpClient)
     {
         _repository = repository;
         _mediator = mediator;
+        _httpClient = httpClient;
     }
     [HttpPost("create")]
     public async Task<IActionResult> CreateChannel(CreateChannelCommand command)
@@ -41,6 +45,22 @@ public class ChannelController : ControllerBase
             Category = dto.Category
         });
         return Ok(entity);
+    }
+    [HttpPost("{channelId}/subscribe")]
+    public async Task<IActionResult> Subscribe(Guid channelId, Guid userId)
+    {
+        var sub = await _mediator.Send(new SubscribeToChannelCommand
+        {
+            ChannelId = channelId,
+            UserId = userId
+        });
+        return sub ? Ok("Abone olundu.") : BadRequest("Abone olunamadı.");
+    }
+
+    [HttpPost("subscribe-to-channel")]
+    public async Task<IActionResult> SubscribeToChannel(SubscribeToChannelCommand command)
+    {
+        return Ok(await _mediator.Send(command));
     }
     
 }

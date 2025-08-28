@@ -6,4 +6,5 @@ public class Channel
     public long Subscribers { get; set; }
     public bool IsActive { get; set; } = false;
     public DateTime CreationDate { get; set; }
+    public ICollection<ChannelSubscriber> ChannelSubscribers { get; set; } = new List<ChannelSubscriber>();
 }

@@ -6,4 +6,5 @@ public class ChannelDetailDto
     public long Subscribers { get; set; }
     public bool IsActive { get; set; } = false;
     public DateTime CreationDate { get; set; }
+    public List<ChannelSubscriberDto> SubscriberList { get; set; } = new();
 }
