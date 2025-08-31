@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Security.Claims;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [Route("api/[controller]")]
@@ -46,21 +47,22 @@ public class ChannelController : ControllerBase
         });
         return Ok(entity);
     }
-    [HttpPost("{channelId}/subscribe")]
-    public async Task<IActionResult> Subscribe(Guid channelId, Guid userId)
+
+    [Authorize] 
+    [HttpPost("{channelId:guid}/subscribe")]
+    public async Task<IActionResult> SubscribeToChannel(Guid channelId)
     {
-        var sub = await _mediator.Send(new SubscribeToChannelCommand
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var response = await _httpClient.CreateClient("UserService")
+    .GetAsync($"User/{userId}");
+
+        if (!response.IsSuccessStatusCode) return NotFound("Kullanıcı bulunamadı.");
+        var result = await _mediator.Send(new SubscribeToChannelCommand
         {
             ChannelId = channelId,
-            UserId = userId
+            UserId = userId,
         });
-        return sub ? Ok("Abone olundu.") : BadRequest("Abone olunamadı.");
-    }
-
-    [HttpPost("subscribe-to-channel")]
-    public async Task<IActionResult> SubscribeToChannel(SubscribeToChannelCommand command)
-    {
-        return Ok(await _mediator.Send(command));
+        return Ok(result);
     }
     
 }

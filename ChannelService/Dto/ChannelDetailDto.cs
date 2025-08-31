@@ -4,6 +4,7 @@ public class ChannelDetailDto
     public string ChannelName { get; set; }
     public string Category { get; set; }
     public long Subscribers { get; set; }
+    public Guid OwnerId{ get; set; }
     public bool IsActive { get; set; } = false;
     public DateTime CreationDate { get; set; }
     public List<ChannelSubscriberDto> SubscriberList { get; set; } = new();

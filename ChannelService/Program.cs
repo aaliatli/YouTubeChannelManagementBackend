@@ -4,6 +4,7 @@ using AutoMapper;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer; 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -12,22 +13,47 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 
+// ---- BUILD ----
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services
-    .AddControllers()
-    .AddFluentValidation(); 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenAnyIP(5200);  
-});
+// Controllers + FluentValidation (yeni yöntem; uyarısız)
+builder.Services.AddControllers();
 
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
-builder.Services.AddHttpClient("UserService", client =>
+
+// Kestrel: ChannelService 5200 dinlesin
+builder.WebHost.ConfigureKestrel(o => o.ListenAnyIP(5200));
+
+// JWT Auth (default scheme + Bearer)
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(opt =>
+    {
+        opt.RequireHttpsMetadata = false; // dev için
+        opt.SaveToken = true;
+        opt.TokenValidationParameters = new()
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "dev-secret-key-change-it"))
+        };
+    });
+builder.Services.AddAuthorization();
+
+// HttpClient: Docker yok → localhost:5100 (UserService)
+builder.Services.AddHttpClient("UserService", c =>
 {
-    client.BaseAddress = new Uri("http://userservice:5200/api/"); 
+    c.BaseAddress = new Uri("http://localhost:5100/api/");
 });
 
+// Swagger + JWT
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opt =>
 {
@@ -53,66 +79,40 @@ builder.Services.AddSwaggerGen(opt =>
     });
 });
 
+// DbContexts
 builder.Services.AddDbContext<ChannelDbContext>(opt =>
 {
     var conn = builder.Configuration.GetConnectionString("DefaultConnection");
     opt.UseSqlServer(conn, sql => sql.EnableRetryOnFailure(3));
 });
 builder.Services.AddDbContext<FileDbContext>(opt =>
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("FileDb")));
+{
+    var conn = builder.Configuration.GetConnectionString("FileDb");
+    opt.UseSqlServer(conn);
+});
 
-builder.Services.AddMediatR(cfg =>
-    cfg.RegisterServicesFromAssembly(typeof(ReadFileQueryHandler).Assembly));
+// MediatR, AutoMapper, Repo, Cache, CORS, ResponseCaching
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
+builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
 builder.Services.AddScoped<IFileRepository, FileRepository>();
 
-builder.Services.AddMediatR(cfg =>
-    cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
-
-
-builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
+builder.Services.AddMemoryCache();
+builder.Services.AddResponseCaching();
 
 builder.Services.AddCors(opt =>
 {
     opt.AddPolicy("AllowAll", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 });
 
-builder.Services.AddMemoryCache();
-builder.Services.AddResponseCaching();
-
-var jwtKey = builder.Configuration["Jwt:Key"];
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-var jwtAudience = builder.Configuration["Jwt:Audience"];
-/*
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.RequireHttpsMetadata = false; // Dev ortamı için
-        options.SaveToken = true;
-        options.TokenValidationParameters = new()
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey ?? "dev-secret-key-change-it"))
-        };
-    });
-*/
-builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
-
 var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
-
 app.UseResponseCaching();
 
 app.UseAuthentication();
@@ -120,14 +120,14 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// İlk kurulum için tek satır (migration yoksa)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ChannelDbContext>();
-    // Migration kullanıyorsan:
-    // await db.Database.MigrateAsync();
-    // Migration atmayacaksan:
     await db.Database.EnsureCreatedAsync();
+
+    var fileDb = scope.ServiceProvider.GetRequiredService<FileDbContext>();
+    await fileDb.Database.EnsureCreatedAsync();
 }
 
 app.Run();
-

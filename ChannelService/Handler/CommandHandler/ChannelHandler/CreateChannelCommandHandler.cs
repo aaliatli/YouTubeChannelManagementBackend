@@ -14,6 +14,7 @@ public class CreateChannelCommandHandler : IRequestHandler<CreateChannelCommand,
             ChannelId = Guid.NewGuid(),
             ChannelName = request.ChannelName,
             Category = request.Category,
+            OwnerId = request.OwnerId
         };
 
         return await _repository.CreateChannel(newChannel);
