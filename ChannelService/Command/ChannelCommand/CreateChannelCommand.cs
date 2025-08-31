@@ -4,5 +4,6 @@ public class CreateChannelCommand : IRequest<Guid>
 {
     public string ChannelName { get; set; }
     public string Category { get; set; }
+    public Guid OwnerId{ get; set; }
 
 }
