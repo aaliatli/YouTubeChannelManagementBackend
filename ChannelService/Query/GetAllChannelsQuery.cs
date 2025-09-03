@@ -1,5 +1,5 @@
 using MediatR;
-public class GetAllChannelsQuery : IRequest<IReadOnlyList<ChannelListDto>>
+public class GetAllChannelsQuery : IRequest<List<GetAllChannelsQueryResult>>
 {
 
 }

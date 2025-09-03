@@ -20,7 +20,17 @@ public class ChannelController : ControllerBase
     [HttpPost("create")]
     public async Task<IActionResult> CreateChannel(CreateChannelCommand command)
     {
-        return Ok(await _mediator.Send(command));
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub")
+            ?? User.FindFirstValue("userId");
+
+        if (string.IsNullOrWhiteSpace(userIdStr) || !Guid.TryParse(userIdStr, out var ownerId))
+            return Unauthorized("Token içinde geçerli kullanıcı kimliği bulunamadı.");
+
+        command.OwnerId = ownerId;
+
+        var result = await _mediator.Send(command);
+        return Created(string.Empty, result);
     }
     [HttpGet("get-channel")]
     public async Task<IActionResult> GetChannel()
@@ -53,8 +63,7 @@ public class ChannelController : ControllerBase
     public async Task<IActionResult> SubscribeToChannel(Guid channelId)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-        var response = await _httpClient.CreateClient("UserService")
-    .GetAsync($"User/{userId}");
+        var response = await _httpClient.CreateClient("UserService").GetAsync($"User/{userId}");
 
         if (!response.IsSuccessStatusCode) return NotFound("Kullanıcı bulunamadı.");
         var result = await _mediator.Send(new SubscribeToChannelCommand

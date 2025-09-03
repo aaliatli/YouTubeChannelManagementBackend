@@ -1,4 +1,4 @@
-public class ChannelDetailDto
+public class GetChannelDetailQueryResult
 {
     public Guid ChannelId { get; set; }
     public string ChannelName { get; set; }
