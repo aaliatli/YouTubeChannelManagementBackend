@@ -16,7 +16,7 @@ public class FileRepository : IFileRepository
     {
         return await File.ReadAllTextAsync(filePath);
     }
-    public async Task<List<ChannelDetailDto>> ReadChannelsFromExcelAsync(IFormFile file)
+    public async Task<List<GetChannelDetailQueryResult>> ReadChannelsFromExcelAsync(IFormFile file)
     {
         if (file == null || file.Length == 0)
             throw new ArgumentException("Excel dosyası yok veya boş.");
@@ -25,7 +25,7 @@ public class FileRepository : IFileRepository
         await file.CopyToAsync(ms);
         ms.Position = 0;
 
-        var result = new List<ChannelDetailDto>();
+        var result = new List<GetChannelDetailQueryResult>();
 
         using var wb = new XLWorkbook(ms);
         var ws = wb.Worksheet(1);
@@ -57,7 +57,7 @@ public class FileRepository : IFileRepository
             else
                 DateTime.TryParse(c5.GetString(), out creation);
 
-            result.Add(new ChannelDetailDto
+            result.Add(new GetChannelDetailQueryResult
             {
                 ChannelId    = Guid.NewGuid(),
                 ChannelName  = channelName,

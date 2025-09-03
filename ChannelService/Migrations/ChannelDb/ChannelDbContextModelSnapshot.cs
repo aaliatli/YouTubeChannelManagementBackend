@@ -64,6 +64,14 @@ namespace ChannelService.Migrations.ChannelDb
                     b.Property<DateTime>("SubscribedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UserLastName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("ChannelId", "UserId");
 
                     b.HasIndex("UserId");

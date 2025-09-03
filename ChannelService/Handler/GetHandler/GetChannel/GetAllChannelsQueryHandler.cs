@@ -1,15 +1,20 @@
+using AutoMapper;
 using MediatR;
 
-public class GetAllChannelsQueryHandler : IRequestHandler<GetAllChannelsQuery, IReadOnlyList<ChannelListDto>>
+public class GetAllChannelsQueryHandler : IRequestHandler<GetAllChannelsQuery, List<GetAllChannelsQueryResult>>
 {
     private readonly IChannelRepository _repository;
-    public GetAllChannelsQueryHandler(IChannelRepository repository)
+    private readonly IMapper _mapper;
+    public GetAllChannelsQueryHandler(IChannelRepository repository, IMapper mapper)
     {
         _repository = repository;
+        _mapper = mapper;
     }
 
-    public async Task<IReadOnlyList<ChannelListDto>> Handle(GetAllChannelsQuery request, CancellationToken cancellationToken)
+    public async Task<List<GetAllChannelsQueryResult>> Handle(GetAllChannelsQuery request, CancellationToken cancellationToken)
     {
-        return await _repository.GetAllChannels();
+        var entities = await _repository.GetAllChannels();
+        var result = _mapper.Map<List<GetAllChannelsQueryResult>>(entities);
+        return result;
     }
 }

@@ -12,5 +12,8 @@ public class ChannelDbContext : DbContext
         modelBuilder.Entity<ChannelSubscriber>().HasKey(cs => new { cs.ChannelId, cs.UserId });
         modelBuilder.Entity<ChannelSubscriber>().HasOne(cs => cs.Channel).WithMany(c => c.ChannelSubscribers).HasForeignKey(cs => cs.ChannelId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<ChannelSubscriber>().HasIndex(cs => cs.UserId);
+
+        modelBuilder.Entity<ChannelSubscriber>().HasKey(cs => new { cs.ChannelId, cs.UserId });
+        modelBuilder.Entity<ChannelSubscriber>().HasOne(cs => cs.Channel).WithMany(c => c.ChannelSubscribers).HasForeignKey(cs => cs.ChannelId);
     }
 }

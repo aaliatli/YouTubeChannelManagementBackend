@@ -27,25 +27,26 @@ builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 builder.WebHost.ConfigureKestrel(o => o.ListenAnyIP(5200));
 
 // JWT Auth (default scheme + Bearer)
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(opt =>
+builder.Services.AddAuthentication("Bearer")
+    .AddJwtBearer("Bearer", options =>
     {
-        opt.RequireHttpsMetadata = false; // dev için
-        opt.SaveToken = true;
-        opt.TokenValidationParameters = new()
+        options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
+
+            ValidIssuer = "UserService",
+            ValidAudience = "UserServiceClients",
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "dev-secret-key-change-it"))
+                Encoding.UTF8.GetBytes("my_super_secret_jwt_key_1234567890!@#$%"))
         };
     });
+
 builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor(); 
+
 
 // HttpClient: Docker yok → localhost:5100 (UserService)
 builder.Services.AddHttpClient("UserService", c =>

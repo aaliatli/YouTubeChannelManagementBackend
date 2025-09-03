@@ -1,8 +1,9 @@
 public interface IChannelRepository
 {
-    Task<Guid> CreateChannel(Channel entity);
+    Task<Channel> CreateChannel(Channel entity);
     Task<bool> DeleteChannel(Guid ChannelId);
     Task<bool> UpdateChannel(UpdateChannelDto dto);
-    Task<List<ChannelDetailDto>> GetChannelById(Guid ChannelId);
-    Task<IReadOnlyList<ChannelListDto>> GetAllChannels();
+    Task<List<GetChannelByIdQueryResult>> GetChannelById(Guid ChannelId);
+    Task<List<GetChannelDetailQueryResult>> GetChannelDetail();
+    Task<List<GetAllChannelsQueryResult>> GetAllChannels();
 }
