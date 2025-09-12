@@ -7,16 +7,20 @@ using System.Text;
 public class JwtService
 {
     private readonly JwtSettings _settings;
-    public JwtService(IOptions<JwtSettings> settings) => _settings = settings.Value;
 
-    public string GenerateToken(string userId, string role)
+    public JwtService(IOptions<JwtSettings> settings)
     {
-        var claims = new[]
+        _settings = settings.Value;
+    }
+
+    public string GenerateToken(Guid userId, string userMail, string role = "User")
+    {
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, userId), 
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()), 
+            new Claim(ClaimTypes.Email, userMail),                   
             new Claim(ClaimTypes.Role, role)
         };
-
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -25,9 +29,11 @@ public class JwtService
             issuer: _settings.Issuer,
             audience: _settings.Audience,
             claims: claims,
+            notBefore: DateTime.UtcNow,
             expires: DateTime.UtcNow.AddMinutes(_settings.ExpireMinutes),
             signingCredentials: creds
         );
+
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

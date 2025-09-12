@@ -21,6 +21,7 @@
 
     <!-- FluentValidation ASP.NET Core -->
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.8" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.0" />
 
     <!-- AutoMapper + DI eklentisi (sürümler uyumlu) -->

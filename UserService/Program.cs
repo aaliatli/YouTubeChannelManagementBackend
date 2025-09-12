@@ -10,37 +10,36 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers + FluentValidation
 builder.Services.AddControllers()
     .AddFluentValidation();
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
-// Kestrel: UserService 5100 dinlesin
 builder.WebHost.ConfigureKestrel(o => o.ListenAnyIP(5100));
 
-// DbContext
 builder.Services.AddDbContext<UserDbContext>(opt =>
 {
     var conn = builder.Configuration.GetConnectionString("DefaultConnection");
     opt.UseSqlServer(conn, sql => sql.EnableRetryOnFailure(3));
 });
 
-// MediatR, AutoMapper
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
-// Cross-cutting
 builder.Services.AddCors(opt => opt.AddPolicy("AllowAll", p =>
     p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCaching();
-
-// JWT Config
+/*
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = "localhost:5100"; 
+    options.InstanceName = "UserS_";    
+});
+*/
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
-builder.Services.AddSingleton<JwtService>(); // Token üretmek için kendi servisin
+builder.Services.AddSingleton<JwtService>(); 
 
-// Eğer UserService API içinde de JWT doğrulama yapmak istersen:
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -58,7 +57,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// Swagger + JWT
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opt =>
 {
@@ -83,8 +81,19 @@ builder.Services.AddSwaggerGen(opt =>
         }
     });
 });
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactApp",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000") 
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        });
+});
 
-// Repositories
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 var app = builder.Build();
@@ -105,12 +114,12 @@ app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseResponseCaching();
 
-app.UseAuthentication(); // JWT doğrulama
+app.UseAuthentication(); 
 app.UseAuthorization();
+app.UseCors("ReactApp");
 
 app.MapControllers();
 
-// DB auto-create
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();

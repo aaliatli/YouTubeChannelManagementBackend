@@ -1,11 +1,18 @@
 using MediatR;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 public class CreateChannelCommandHandler : IRequestHandler<CreateChannelCommand, CreateChannelDto>
 {
     private readonly IChannelRepository _repository;
-    public CreateChannelCommandHandler(IChannelRepository repository)
+    private readonly ILogger<CreateChannelCommandHandler> _logger;
+    private readonly IMemoryCache _cache;
+    public CreateChannelCommandHandler(IChannelRepository repository, ILogger<CreateChannelCommandHandler> logger, IMemoryCache cache)
     {
         _repository = repository;
+        _logger = logger;
+        _cache = cache;
     }
     public async Task<CreateChannelDto> Handle(CreateChannelCommand request, CancellationToken cancellationToken)
     {
@@ -17,13 +24,16 @@ public class CreateChannelCommandHandler : IRequestHandler<CreateChannelCommand,
             OwnerId = request.OwnerId,
         };
         var createdChannel = await _repository.CreateChannel(newChannel);
-        return new CreateChannelDto
+        var created = new CreateChannelDto
         {
             ChannelId = createdChannel.ChannelId,
             ChannelName = createdChannel.ChannelName,
             Category = createdChannel.Category,
             OwnerId = createdChannel.OwnerId
         };
+        _logger.LogInformation("[LOG] Kanal oluşturuldu: {ChannelId} - {ChannelName}", created.ChannelId ,created.ChannelName);
+        _cache.Remove("all_channels");
+        return created;
         
     }
 }

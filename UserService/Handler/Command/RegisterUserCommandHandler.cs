@@ -1,6 +1,6 @@
 using MediatR;
 
-public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, User>
+public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, RegisterUserRequestDto>
 {
     private readonly IUserRepository _repository;
 
@@ -8,7 +8,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, U
     {
         _repository = repository;
     }
-    public async Task<User> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
+    public async Task<RegisterUserRequestDto> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
     {
         var newUser = new User
         {
@@ -18,7 +18,14 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, U
             UserMail = request.UserMail,
             UserPassword = request.UserPassword
         };
-        await _repository.RegisterUser(newUser);
-        return newUser;
+        var created = await _repository.RegisterUser(newUser);
+        return new RegisterUserRequestDto
+        {
+            UserId = Guid.NewGuid(),
+            UserName = created.UserName,
+            UserLastName = created.UserLastName,
+            UserMail = created.UserMail,
+            UserPassword = created.UserPassword
+        };;
     }
 }

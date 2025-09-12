@@ -30,13 +30,14 @@ public class ChannelRepository : IChannelRepository
             Subscribers = c.Subscribers
         }).ToListAsync();
     }
-    public async Task<List<GetChannelByIdQueryResult>> GetChannelById(Guid channelId)
+    public async Task<GetChannelByIdQueryResult?> GetChannelById(Guid channelId)
     {
-        return await _context.Channels.Where(c => c.ChannelId == channelId).Select(c => new GetChannelByIdQueryResult
+        return await _context.Channels.Where(c => c.ChannelId == channelId)
+        .Select(c => new GetChannelByIdQueryResult
         {
-            ChannelId = c.ChannelId,
+            ChannelId = c.ChannelId
 
-        }).ToListAsync();
+        }).FirstOrDefaultAsync();
     }
 
     public async Task<List<GetChannelDetailQueryResult>> GetChannelDetail()
@@ -61,13 +62,13 @@ public class ChannelRepository : IChannelRepository
         }).ToListAsync();
     }
 
-    public async Task<bool> UpdateChannel(UpdateChannelDto dto)
+    public async Task<Channel> UpdateChannel(Channel ch)
     {
-        var entity = await _context.Channels.FindAsync(dto.ChannelId);
-        entity.ChannelName = dto.ChannelName;
-        entity.Category = dto.Category;
+        var entity = await _context.Channels.FindAsync(ch.ChannelId);
+        entity.ChannelName = ch.ChannelName;
+        entity.Category = ch.Category;
         await _context.SaveChangesAsync();
-        return true;
+        return entity;
     }
 
 }

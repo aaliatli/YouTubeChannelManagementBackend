@@ -1,6 +1,6 @@
 using MediatR;
 
-public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, User>
+public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, UpdateUserDto>
 {
     private readonly IUserRepository _repository;
 
@@ -8,7 +8,7 @@ public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, User>
     {
         _repository = repository;
     }
-    public async Task<User> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateUserDto> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
     {
         var existingUser = await _repository.GetUserById(request.UserId);
         existingUser.UserName = request.UserName;
@@ -16,7 +16,14 @@ public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, User>
         existingUser.UserMail = request.UserMail;
         existingUser.UserPassword = request.UserPassword;
         await _repository.UpdateUser(existingUser);
-        return existingUser;
+        
+        return new UpdateUserDto
+        {
+            UserName = existingUser.UserName,
+            UserLastName = existingUser.UserLastName,
+            UserMail = existingUser.UserMail,
+            UserPassword = existingUser.UserPassword
+        };;
     }
 
 }

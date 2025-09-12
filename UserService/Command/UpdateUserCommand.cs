@@ -1,8 +1,10 @@
+using System.Text.Json.Serialization;
 using MediatR;
 
-public class UpdateUserCommand : IRequest<User>
+public class UpdateUserCommand : IRequest<UpdateUserDto>
 {
-    public Guid UserId{ get; set; }
+    [JsonIgnore]
+    public Guid UserId { get; set; }
     public string UserName { get; set; }
     public string UserLastName { get; set; }
     public string UserMail { get; set; }

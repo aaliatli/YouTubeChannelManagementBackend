@@ -11,22 +11,19 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
-// ---- BUILD ----
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers + FluentValidation (yeni yöntem; uyarısız)
 builder.Services.AddControllers();
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
-// Kestrel: ChannelService 5200 dinlesin
 builder.WebHost.ConfigureKestrel(o => o.ListenAnyIP(5200));
 
-// JWT Auth (default scheme + Bearer)
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
@@ -47,14 +44,23 @@ builder.Services.AddAuthentication("Bearer")
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor(); 
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactApp",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000") 
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        });
+});
 
-// HttpClient: Docker yok → localhost:5100 (UserService)
 builder.Services.AddHttpClient("UserService", c =>
 {
     c.BaseAddress = new Uri("http://localhost:5100/api/");
 });
 
-// Swagger + JWT
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opt =>
 {
@@ -80,7 +86,6 @@ builder.Services.AddSwaggerGen(opt =>
     });
 });
 
-// DbContexts
 builder.Services.AddDbContext<ChannelDbContext>(opt =>
 {
     var conn = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -92,7 +97,6 @@ builder.Services.AddDbContext<FileDbContext>(opt =>
     opt.UseSqlServer(conn);
 });
 
-// MediatR, AutoMapper, Repo, Cache, CORS, ResponseCaching
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
@@ -100,6 +104,12 @@ builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
 builder.Services.AddScoped<IFileRepository, FileRepository>();
 
 builder.Services.AddMemoryCache();
+builder.Services.AddLogging(logging =>
+{
+    logging.ClearProviders();
+    logging.AddConsole(); 
+});
+
 builder.Services.AddResponseCaching();
 
 builder.Services.AddCors(opt =>
@@ -118,10 +128,9 @@ app.UseResponseCaching();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseCors("ReactApp");
 app.MapControllers();
 
-// İlk kurulum için tek satır (migration yoksa)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ChannelDbContext>();

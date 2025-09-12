@@ -3,6 +3,7 @@ using MediatR;
 
 public class CreateChannelCommand : IRequest<CreateChannelDto>
 {
+
     public string ChannelName { get; set; }
     public string Category { get; set; }
     [JsonIgnore]

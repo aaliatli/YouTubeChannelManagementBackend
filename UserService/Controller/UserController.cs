@@ -12,39 +12,44 @@ public class UserController : ControllerBase
         _mediator = mediator;
     }
 
-    [HttpPost("register-user")]
-    public async Task<IActionResult> RegisterUser(RegisterUserCommand command)
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(RegisterUserCommand command)
     {
         await _mediator.Send(command);
         return Ok("Kullanıcı kaydedildi.");
     }
     
     [HttpPost("login")]
-    public async Task<IActionResult> LoginUser(LoginUserCommand command)
+    public async Task<IActionResult> Login([FromBody]LoginUserCommand command)
     {
-        var token = await _mediator.Send(command);
-        if(string.IsNullOrEmpty(token)){ return Unauthorized("Kullanıcı ya da şifre hatalı!"); }
-        return Ok(new { token });
+        var loginUser = await _mediator.Send(command);
+        if(string.IsNullOrEmpty(loginUser.Token)){ return Unauthorized("Kullanıcı ya da şifre hatalı!"); }
+        return Ok(new { loginUser });
     }
-    [HttpGet("users")]
-    public async Task<IActionResult> GetAllUsers()
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
     {
         var result = await _mediator.Send(new GetAllUsersQuery());
         return Ok(result);
     }
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetUserById(Guid id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         return Ok(await _mediator.Send(new GetUserByIdQuery { UserId = id }));
     }
-    [HttpDelete("user-delete")]
-    public async Task<IActionResult> DeleteUser(DeleteUserByIdCommand command)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(Guid id)
     {
-        return Ok(await _mediator.Send(command));
+        var command = new DeleteUserByIdCommand { UserId = id };
+        var result = await _mediator.Send(command);
+        if (!result) return NotFound("Silinecek kanal bulunamadı.");
+        return Ok("Kanal silindi");
     }
-    [HttpPut("update-user")]
-    public async Task<IActionResult> UpdateUser(UpdateUserCommand command)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(Guid id, UpdateUserCommand command)
     {
-        return Ok(await _mediator.Send(command));
+        command.UserId = id;
+        var result = await _mediator.Send(command);
+        return Ok(result);
     }
 }
